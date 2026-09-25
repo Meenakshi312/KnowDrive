@@ -20,6 +20,22 @@ import {
   SEED_MESSAGES,
 } from "./seed-data";
 import { getSupabaseServerClient, isSupabaseConfigured } from "./supabase";
+import { formatEmbeddingForPg, parseEmbedding } from "../ai/embeddings";
+
+const FILE_UPDATE_COLUMNS = new Set([
+  "name",
+  "original_name",
+  "folder_id",
+  "mime_type",
+  "file_type",
+  "size_bytes",
+  "storage_path",
+  "processing_status",
+  "error_message",
+  "is_starred",
+  "is_trashed",
+  "trashed_at",
+]);
 
 // In-Memory state for local/demo/fallback mode
 class InMemoryDb {
@@ -312,7 +328,7 @@ export class KnowDriveRepository {
   }
 
   async getFileByIdAdmin(fileId: string): Promise<DriveFile | null> {
-    if (!this.isDemo && isSupabaseConfigured) {
+    if (isSupabaseConfigured) {
       const supabase = getSupabaseServerClient();
       if (supabase) {
         const { data, error } = await supabase
@@ -370,16 +386,25 @@ export class KnowDriveRepository {
   }
 
   async updateFile(fileId: string, updates: Partial<DriveFile>): Promise<DriveFile | null> {
+    const dbUpdates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    for (const [key, value] of Object.entries(updates)) {
+      if (FILE_UPDATE_COLUMNS.has(key)) dbUpdates[key] = value;
+    }
+
     if (!this.isDemo && isSupabaseConfigured) {
       const supabase = getSupabaseServerClient();
       if (supabase) {
         const { data, error } = await supabase
           .from("files")
-          .update({ ...updates, updated_at: new Date().toISOString() })
+          .update(dbUpdates)
           .eq("id", fileId)
           .select()
           .single();
-        if (!error && data) return data as DriveFile;
+        if (error) {
+          console.error("Supabase updateFile error:", error);
+        } else if (data) {
+          return data as DriveFile;
+        }
       }
     }
 
@@ -446,6 +471,9 @@ export class KnowDriveRepository {
     if (!this.isDemo && isSupabaseConfigured) {
       const supabase = getSupabaseServerClient();
       if (supabase) {
+        // Replace previous index for this file so reprocessing does not duplicate chunks
+        await supabase.from("documents").delete().eq("file_id", document.file_id);
+
         const { error: docErr } = await supabase.from("documents").insert({
           id: document.id,
           file_id: document.file_id,
@@ -455,7 +483,7 @@ export class KnowDriveRepository {
           word_count: document.word_count,
           extracted_text: document.extracted_text,
         });
-        if (docErr) console.error("Supabase insert document error:", docErr);
+        if (docErr) throw new Error(`Failed to save document metadata: ${docErr.message}`);
 
         const { error: chunkErr } = await supabase.from("document_chunks").insert(
           chunks.map((chk) => ({
@@ -467,11 +495,11 @@ export class KnowDriveRepository {
             chunk_text: chk.chunk_text,
             page_number: chk.page_number,
             token_count: chk.token_count,
-            embedding: chk.embedding,
-            metadata: chk.metadata,
+            embedding: chk.embedding && chk.embedding.length ? formatEmbeddingForPg(chk.embedding) : null,
+            metadata: chk.metadata || {},
           }))
         );
-        if (chunkErr) console.error("Supabase insert chunks error:", chunkErr);
+        if (chunkErr) throw new Error(`Failed to save document chunks: ${chunkErr.message}`);
 
         await supabase
           .from("files")
@@ -485,6 +513,8 @@ export class KnowDriveRepository {
       }
     }
 
+    memoryDb.documents = memoryDb.documents.filter((d) => d.file_id !== document.file_id);
+    memoryDb.chunks = memoryDb.chunks.filter((c) => c.file_id !== document.file_id);
     memoryDb.documents.push(document);
     memoryDb.chunks.push(...chunks);
     const file = memoryDb.files.find((f) => f.id === docData.file_id);
@@ -498,7 +528,45 @@ export class KnowDriveRepository {
   }
 
   getAllChunks(): DocumentChunk[] {
-    return memoryDb.chunks.filter((c) => c.user_id === this.userId);
+    return memoryDb.chunks
+      .filter((c) => c.user_id === this.userId)
+      .map(normalizeChunkRow);
+  }
+
+  async getAuthorizedChunks(fileIds?: string[]): Promise<DocumentChunk[]> {
+    if (!this.isDemo && isSupabaseConfigured) {
+      const supabase = getSupabaseServerClient();
+      if (supabase) {
+        let query = supabase
+          .from("document_chunks")
+          .select("*, files!inner(name, is_trashed)")
+          .eq("user_id", this.userId)
+          .eq("files.is_trashed", false)
+          .order("chunk_index", { ascending: true });
+
+        if (fileIds && fileIds.length > 0) {
+          query = query.in("file_id", fileIds);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+          console.error("Supabase getAuthorizedChunks error:", error);
+        } else if (data) {
+          return data.map((row) =>
+            normalizeChunkRow({
+              ...row,
+              file_name: (row as { files?: { name?: string } }).files?.name,
+            })
+          );
+        }
+      }
+    }
+
+    let chunks = this.getAllChunks();
+    if (fileIds && fileIds.length > 0) {
+      chunks = chunks.filter((c) => fileIds.includes(c.file_id));
+    }
+    return chunks;
   }
 
   async getChunksByFile(fileId: string): Promise<DocumentChunk[]> {
@@ -511,11 +579,12 @@ export class KnowDriveRepository {
           .eq("file_id", fileId)
           .eq("user_id", this.userId)
           .order("chunk_index", { ascending: true });
-        if (!error && data) return data as DocumentChunk[];
+        if (!error && data) return data.map(normalizeChunkRow);
       }
     }
     return memoryDb.chunks
       .filter((c) => c.file_id === fileId && c.user_id === this.userId)
+      .map(normalizeChunkRow)
       .sort((a, b) => a.chunk_index - b.chunk_index);
   }
 
@@ -647,16 +716,24 @@ export class KnowDriveRepository {
         if (error) console.error("Supabase addMessage error:", error);
 
         if (newMsg.citations && newMsg.citations.length > 0) {
-          const citationsToInsert = newMsg.citations.map((c) => ({
-            id: crypto.randomUUID(),
-            message_id: newMsg.id,
-            file_id: c.file_id,
-            file_name: c.file_name,
-            page_number: c.page_number,
-            snippet: c.snippet,
-          }));
-          const { error: citErr } = await supabase.from("message_citations").insert(citationsToInsert);
-          if (citErr) console.error("Supabase insert citations error:", citErr);
+          const uuidPattern =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          const citationsToInsert = newMsg.citations
+            .filter((c) => c.file_id && uuidPattern.test(c.file_id))
+            .map((c) => ({
+              id: crypto.randomUUID(),
+              message_id: newMsg.id,
+              file_id: c.file_id,
+              chunk_id: c.chunk_id && uuidPattern.test(c.chunk_id) ? c.chunk_id : null,
+              file_name: c.file_name,
+              page_number: c.page_number,
+              snippet: c.snippet,
+              relevance_score: c.relevance_score ?? null,
+            }));
+          if (citationsToInsert.length > 0) {
+            const { error: citErr } = await supabase.from("message_citations").insert(citationsToInsert);
+            if (citErr) console.error("Supabase insert citations error:", citErr);
+          }
         }
         if (data) return { ...newMsg, ...data };
       }
@@ -671,4 +748,12 @@ export class KnowDriveRepository {
 
     return newMsg;
   }
+}
+
+function normalizeChunkRow(row: DocumentChunk & { embedding?: unknown; files?: { name?: string } }): DocumentChunk {
+  return {
+    ...row,
+    embedding: parseEmbedding(row.embedding),
+    file_name: row.file_name || row.files?.name,
+  };
 }

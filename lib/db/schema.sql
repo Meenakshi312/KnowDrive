@@ -202,6 +202,7 @@ BEGIN
   WHERE dc.user_id = filter_user_id
     AND f.is_trashed = FALSE
     AND (filter_file_ids IS NULL OR dc.file_id = ANY(filter_file_ids))
+    AND dc.embedding IS NOT NULL
     AND (1 - (dc.embedding <=> query_embedding)) > match_threshold
   ORDER BY dc.embedding <=> query_embedding
   LIMIT match_count;

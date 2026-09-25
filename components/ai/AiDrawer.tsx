@@ -53,18 +53,6 @@ export function AiDrawer({ isOpen, onClose, activeFile, onOpenCitation }: AiDraw
 
   if (!isOpen) return null;
 
-  const suggestedPrompts = currentTargetFile
-    ? [
-        `Who is the applicant or author in ${currentTargetFile.name}?`,
-        `Summarize the key points of ${currentTargetFile.name}`,
-        `What qualifications, skills, and details are in ${currentTargetFile.name}?`,
-      ]
-    : [
-        "Who is the applicant and what are the details in my documents?",
-        "Summarize the technical skills and qualifications across my files",
-        "Compare the key findings across my stored documents",
-      ];
-
   const handleSend = async (queryText?: string) => {
     const text = (queryText || input).trim();
     if (!text || loading) return;
@@ -246,23 +234,7 @@ export function AiDrawer({ isOpen, onClose, activeFile, onOpenCitation }: AiDraw
                 </p>
               </div>
 
-              {/* Suggested Questions */}
-              <div className="w-full space-y-2 pt-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground text-left">
-                  Suggested Questions
-                </p>
-                <div className="flex flex-col gap-2">
-                  {suggestedPrompts.map((prompt, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleSend(prompt)}
-                      className="text-left text-xs p-3 rounded-xl bg-muted/40 hover:bg-muted border border-border/60 hover:border-indigo-500/40 text-foreground transition-all"
-                    >
-                      {prompt}
-                    </button>
-                  ))}
-                </div>
-              </div>
+
             </div>
           ) : (
             <>

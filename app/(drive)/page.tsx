@@ -229,41 +229,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Suggested Assistant Prompts */}
-      <div className="p-6 rounded-2xl bg-muted/40 border border-border space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <h3 className="text-sm font-bold text-foreground">Ask Assistant Across Your Files</h3>
-          </div>
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Gemini Assistant
-          </span>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Click a prompt below or click &ldquo;Ask AI&rdquo; on any document card to query it directly:
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
-          <button
-            onClick={() => openAiForFile(null)}
-            className="p-3 rounded-xl bg-card hover:bg-muted/80 border border-border text-left text-xs font-medium text-foreground hover:border-primary/40 transition-all shadow-sm"
-          >
-            &ldquo;Who is the applicant and what are the details in my application form?&rdquo;
-          </button>
-          <button
-            onClick={() => openAiForFile(null)}
-            className="p-3 rounded-xl bg-card hover:bg-muted/80 border border-border text-left text-xs font-medium text-foreground hover:border-primary/40 transition-all shadow-sm"
-          >
-            &ldquo;Summarize the education, skills, and qualifications in my documents.&rdquo;
-          </button>
-          <button
-            onClick={() => openAiForFile(null)}
-            className="p-3 rounded-xl bg-card hover:bg-muted/80 border border-border text-left text-xs font-medium text-foreground hover:border-primary/40 transition-all shadow-sm"
-          >
-            &ldquo;Compare the documents in my Drive and list their key findings.&rdquo;
-          </button>
-        </div>
-      </div>
 
       {/* Storage Breakdown Meter */}
       <StorageMeter stats={storageStats} />

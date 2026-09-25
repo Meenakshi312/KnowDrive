@@ -1,4 +1,4 @@
-import { getGeminiClient, isGeminiConfigured } from "./client";
+import { getGeminiClient, isGeminiConfigured, generateGroundedText } from "./client";
 import { KnowDriveRepository } from "../db/repository";
 import { ComparisonResult, DriveFile, DocumentChunk } from "@/types";
 
@@ -73,26 +73,22 @@ CRITICAL RULES:
 - Be concrete: list actual skills, technologies, frameworks, certifications, or subject matters (e.g., Python, PostgreSQL, Machine Learning, OpenFOAM, GATE 2027, IIT Kharagpur, Speech Enhancement, etc.).
 - Ensure common_skills and missing_skills are detailed arrays containing at least 3-5 specific items each.`;
 
-  const ai = getGeminiClient();
-
-  if (ai && isGeminiConfigured) {
+  if (isGeminiConfigured) {
     try {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-      });
-
-      const text = (response.text || "").trim();
-      const cleanJson = text
-        .replace(/^```json\s*/i, "")
-        .replace(/^```\s*/i, "")
-        .replace(/\s*```$/i, "");
-      const parsed = JSON.parse(cleanJson);
-      if (parsed.summary && Array.isArray(parsed.common_skills) && Array.isArray(parsed.missing_skills)) {
-        return parsed as ComparisonResult;
+      const text = await generateGroundedText(prompt);
+      if (text) {
+        const cleanJson = text
+          .replace(/^```json\s*/i, "")
+          .replace(/^```\s*/i, "")
+          .replace(/\s*```$/i, "")
+          .trim();
+        const parsed = JSON.parse(cleanJson);
+        if (parsed.summary && Array.isArray(parsed.common_skills) && Array.isArray(parsed.missing_skills)) {
+          return parsed as ComparisonResult;
+        }
       }
     } catch (err) {
-      console.warn("Gemini compare failed or rate-limited, using dynamic document comparison synthesis:", err);
+      console.warn("Gemini compare failed or rate-limited, using fallback:", err);
     }
   }
 

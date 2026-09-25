@@ -147,7 +147,6 @@ function DriveLayoutInner({ children }: { children: React.ReactNode }) {
         isOpen={isAiDrawerOpen}
         onClose={() => {
           setIsAiDrawerOpen(false);
-          openAiForFile(null);
         }}
         activeFile={aiTargetFile}
         onOpenCitation={openCitation}

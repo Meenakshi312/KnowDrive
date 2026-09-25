@@ -44,6 +44,16 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
       };
     }
 
+    const allCookies = cookieStore.getAll();
+    const hasAuthCookie = allCookies.some(
+      (c) => c.name.startsWith("sb-") && c.name.includes("-auth-token")
+    );
+
+    // If there is no Supabase auth token cookie, user is unauthenticated (return immediately in 0ms)
+    if (!hasAuthCookie) {
+      return null;
+    }
+
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {
@@ -61,9 +71,18 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
       },
     });
 
+    // Guard with a 4-second timeout to prevent AuthRetryableFetchError from hanging the server for 26s
+    const userPromise = supabase.auth.getUser();
+    const timeoutPromise = new Promise<{ data: { user: null }; error: Error }>((resolve) =>
+      setTimeout(
+        () => resolve({ data: { user: null }, error: new Error("Auth session verification timed out") }),
+        4000
+      )
+    );
+
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await Promise.race([userPromise, timeoutPromise]);
 
     if (user) {
       const fullName =

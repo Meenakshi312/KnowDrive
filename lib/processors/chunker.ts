@@ -77,7 +77,7 @@ export function chunkDocument(
     }
 
     // Flush any remaining words for this page
-    if (currentWords.length > 10) {
+    if (currentWords.length > 0) {
       const text = currentWords.join(" ");
       result.push({
         chunk_index: globalChunkIndex++,

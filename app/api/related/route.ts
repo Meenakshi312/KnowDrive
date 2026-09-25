@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { KnowDriveRepository } from "@/lib/db/repository";
-import { searchChunksBySimilarity, EMBEDDING_DIMENSION } from "@/lib/ai/embeddings";
+import { hybridSearchChunks, EMBEDDING_DIMENSION, parseEmbedding } from "@/lib/ai/embeddings";
 import { getCurrentUser } from "@/lib/db/auth-server";
 
 export async function GET(req: NextRequest) {
@@ -18,24 +18,23 @@ export async function GET(req: NextRequest) {
     }
 
     const repo = new KnowDriveRepository(user.id, user.isDemo);
-    const sourceChunks = await repo.getChunksByFile(fileId);
+    const sourceFile = await repo.getFileById(fileId);
+    if (!sourceFile) {
+      return NextResponse.json({ error: "File not found" }, { status: 404 });
+    }
 
+    const sourceChunks = await repo.getChunksByFile(fileId);
     if (sourceChunks.length === 0) {
       return NextResponse.json({ relatedFiles: [] });
     }
 
-    // Use primary chunk embedding as reference
-    const primaryChunk = sourceChunks[0];
-    if (!primaryChunk.embedding || primaryChunk.embedding.length !== EMBEDDING_DIMENSION) {
-      return NextResponse.json({
-        relatedFiles: [],
-        notice: "Document has not yet been indexed with 768-dim Gemini vector embeddings.",
-      });
-    }
+    const sourceText = sourceChunks.map((c) => c.chunk_text).join(" ").slice(0, 4000);
+    const primaryEmbedding =
+      sourceChunks.map((c) => parseEmbedding(c.embedding)).find((e) => e && e.length === EMBEDDING_DIMENSION) ||
+      null;
 
-    const refVector = primaryChunk.embedding;
-    const otherChunks = repo.getAllChunks().filter((c) => c.file_id !== fileId);
-    const matchedChunks = searchChunksBySimilarity(otherChunks, refVector, 8, 0.25);
+    const otherChunks = (await repo.getAuthorizedChunks()).filter((c) => c.file_id !== fileId);
+    const matchedChunks = hybridSearchChunks(otherChunks, sourceText.slice(0, 800), primaryEmbedding, 10, 0.12);
 
     const relatedFileIds = Array.from(new Set(matchedChunks.map((c) => c.file_id)));
     const allFiles = await repo.getFiles({ isTrashed: false });
@@ -43,7 +42,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ relatedFiles });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Failed to find related files";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Related files error:", error);
+    return NextResponse.json({ error: "Failed to find related files" }, { status: 500 });
   }
 }

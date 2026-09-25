@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   Sparkles,
   Send,
@@ -13,6 +14,8 @@ import {
   FileText,
   ShieldCheck,
   Search,
+  X,
+  RotateCcw,
 } from "lucide-react";
 import { ChatMessage } from "./ChatMessage";
 import { PrivacyIndicator } from "./PrivacyIndicator";
@@ -24,24 +27,20 @@ import { toast } from "sonner";
 interface AiAssistantViewProps {
   onOpenCitation: (citation: MessageCitation) => void;
   files: DriveFile[];
+  onClose?: () => void;
 }
 
-export function AiAssistantView({ onOpenCitation, files }: AiAssistantViewProps) {
+export function AiAssistantView({ onOpenCitation, files, onClose }: AiAssistantViewProps) {
+  const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [currentTargetFile, setCurrentTargetFile] = useState<DriveFile | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const suggestedQuestions = [
-    "Which projects in my Drive demonstrate skills missing from the job description?",
-    "What did I do in my OpenFOAM project?",
-    "What PostgreSQL & pgvector projects have I worked on?",
-    "Summarize my machine learning projects and findings.",
-    "Compare my resume with the Staff AI Engineer job description.",
-    "What are the main topics in my notes?",
-  ];
+  const activeFiles = files.filter((f) => !f.is_trashed);
 
   // Load conversations on mount
   useEffect(() => {
@@ -79,6 +78,14 @@ export function AiAssistantView({ onOpenCitation, files }: AiAssistantViewProps)
     setMessages([]);
   };
 
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      router.push("/");
+    }
+  };
+
   const handleSendMessage = async (customPrompt?: string) => {
     const text = (customPrompt || input).trim();
     if (!text || loading) return;
@@ -103,7 +110,8 @@ export function AiAssistantView({ onOpenCitation, files }: AiAssistantViewProps)
         body: JSON.stringify({
           query: text,
           conversationId: activeConvId,
-          scope: "all_drive",
+          targetFileIds: currentTargetFile ? [currentTargetFile.id] : undefined,
+          scope: currentTargetFile ? "file" : "all_drive",
         }),
       });
 
@@ -173,6 +181,55 @@ export function AiAssistantView({ onOpenCitation, files }: AiAssistantViewProps)
 
       {/* Main Chat Center Area */}
       <div className="flex-1 flex flex-col justify-between overflow-hidden">
+        {/* Top Header Controls: Target File Selector & Close Icon */}
+        <div className="px-4 py-2.5 border-b border-border bg-card/80 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <Sparkles className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-foreground">AI Assistant</span>
+              <span className="text-[10px] text-muted-foreground ml-2 hidden sm:inline">
+                {currentTargetFile ? `Focused on: ${currentTargetFile.name}` : "Searching across stored documents"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {activeFiles.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground hidden sm:inline">Focus on file:</span>
+                <select
+                  aria-label="Focus on specific file"
+                  value={currentTargetFile?.id || ""}
+                  onChange={(e) => {
+                    const selected = activeFiles.find((f) => f.id === e.target.value);
+                    setCurrentTargetFile(selected || null);
+                    handleNewConversation();
+                  }}
+                  className="text-xs bg-background border border-border rounded-lg px-2.5 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-primary max-w-[180px] sm:max-w-[240px] truncate"
+                >
+                  <option value="">All Drive Files</option>
+                  {activeFiles.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <button
+              onClick={handleClose}
+              className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors ml-1"
+              title="Close assistant"
+              aria-label="Close assistant"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
         {/* Chat Messages Stream */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
           {messages.length === 0 ? (
@@ -183,33 +240,16 @@ export function AiAssistantView({ onOpenCitation, files }: AiAssistantViewProps)
 
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                  Ask your Knowledge Drive
+                  {currentTargetFile ? `Ask about ${currentTargetFile.name}` : "Ask your Knowledge Drive"}
                 </h2>
                 <p className="text-sm text-muted-foreground max-w-md">
-                  Reason across multiple files simultaneously, extract project evidence, identify missing skills, and get answers with clickable source citations.
+                  {currentTargetFile
+                    ? `Ask questions regarding applicant details, qualifications, or key facts in ${currentTargetFile.name}.`
+                    : "Reason across multiple files simultaneously, extract project evidence, identify missing skills, and get answers with clickable source citations."}
                 </p>
               </div>
 
               <PrivacyIndicator className="w-full text-left" />
-
-              {/* Suggested Questions Grid */}
-              <div className="w-full space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-left">
-                  Sample Prompts & Cross-File Queries
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {suggestedQuestions.map((q, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleSendMessage(q)}
-                      className="p-3.5 rounded-2xl bg-card border border-border hover:border-primary/50 text-left text-xs text-foreground transition-all hover:shadow-md flex items-start gap-2.5 group"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-indigo-500 mt-0.5 shrink-0 group-hover:scale-110 transition-transform" />
-                      <span className="leading-relaxed">{q}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           ) : (
             <div className="max-w-3xl mx-auto space-y-6">
@@ -229,7 +269,26 @@ export function AiAssistantView({ onOpenCitation, files }: AiAssistantViewProps)
         </div>
 
         {/* Input Bar */}
-        <div className="p-4 border-t border-border bg-card/70 backdrop-blur-md shrink-0">
+        <div className="p-4 border-t border-border bg-card/70 backdrop-blur-md shrink-0 space-y-2">
+          {currentTargetFile && (
+            <div className="max-w-3xl mx-auto flex items-center justify-between text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg w-fit max-w-full">
+              <div className="flex items-center gap-1.5 truncate">
+                <FileText className="w-3.5 h-3.5 shrink-0" />
+                <span className="font-semibold truncate">{currentTargetFile.name}</span>
+              </div>
+              <button
+                onClick={() => {
+                  setCurrentTargetFile(null);
+                  handleNewConversation();
+                }}
+                className="ml-2 hover:text-foreground"
+                title="Remove file focus"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           <div className="max-w-3xl mx-auto">
             <form
               onSubmit={(e) => {
@@ -241,7 +300,11 @@ export function AiAssistantView({ onOpenCitation, files }: AiAssistantViewProps)
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask anything across your entire drive (e.g. 'Compare my resume with this job description')..."
+                placeholder={
+                  currentTargetFile
+                    ? `Ask a question about ${currentTargetFile.name}...`
+                    : "Ask anything across your entire drive..."
+                }
                 className="h-11 rounded-xl text-sm"
                 disabled={loading}
                 autoFocus

@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Loader2,
   AlertCircle,
+  Clock,
 } from "lucide-react";
 import { DriveFile } from "@/types";
 import { formatBytes, formatDate } from "@/lib/utils";
@@ -117,8 +118,16 @@ export function FileListRow({
             <Loader2 className="w-3 h-3 animate-spin" />
             Indexing
           </span>
+        ) : file.processing_status === "pending" ? (
+          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground font-medium">
+            <Clock className="w-3 h-3" />
+            Pending
+          </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-[11px] text-rose-500">
+          <span
+            className="inline-flex items-center gap-1 text-[11px] text-rose-500 font-medium"
+            title={file.error_message || "Document processing failed"}
+          >
             <AlertCircle className="w-3 h-3" />
             Failed
           </span>

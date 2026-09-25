@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { KnowDriveRepository } from "@/lib/db/repository";
-import { generateEmbedding, searchChunksBySimilarity } from "@/lib/ai/embeddings";
+import { tryGenerateQueryEmbedding, hybridSearchChunks } from "@/lib/ai/embeddings";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/db/supabase";
 import { getCurrentUser } from "@/lib/db/auth-server";
 
@@ -22,17 +22,16 @@ export async function GET(req: NextRequest) {
     const repo = new KnowDriveRepository(user.id, user.isDemo);
 
     if (isSemantic) {
-      // Vector semantic search
-      const queryEmbedding = await generateEmbedding(query);
+      const queryEmbedding = await tryGenerateQueryEmbedding(query);
       let matchedChunks: { file_id: string; similarity: number; chunk_text: string }[] = [];
 
-      if (!user.isDemo && isSupabaseConfigured) {
+      if (!user.isDemo && isSupabaseConfigured && queryEmbedding) {
         const supabase = getSupabaseServerClient();
         if (supabase) {
           const { data, error } = await supabase.rpc("match_document_chunks", {
             query_embedding: queryEmbedding,
-            match_threshold: 0.2,
-            match_count: 10,
+            match_threshold: 0.12,
+            match_count: 12,
             filter_user_id: user.id,
             filter_file_ids: null,
           });
@@ -47,11 +46,10 @@ export async function GET(req: NextRequest) {
       }
 
       if (matchedChunks.length === 0) {
-        const allChunks = repo.getAllChunks();
-        matchedChunks = searchChunksBySimilarity(allChunks, queryEmbedding, 10, 0.2);
+        const allChunks = await repo.getAuthorizedChunks();
+        matchedChunks = hybridSearchChunks(allChunks, query, queryEmbedding, 12, 0.08);
       }
 
-      // Collect unique files referenced by matched chunks
       const fileIdToSimilarity: Record<string, number> = {};
       matchedChunks.forEach((c) => {
         if (!fileIdToSimilarity[c.file_id] || c.similarity > fileIdToSimilarity[c.file_id]) {
@@ -71,12 +69,11 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Standard filename / metadata search
     const files = await repo.getFiles({ searchQuery: query, isTrashed: false });
     return NextResponse.json({ files, chunks: [], isSemantic: false });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Search failed";
     console.error("Search API error:", error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Search failed. Please try again." }, { status: 500 });
   }
 }

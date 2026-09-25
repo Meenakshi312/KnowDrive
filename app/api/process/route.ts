@@ -4,34 +4,47 @@ import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/db/supabase
 import { extractDocumentText } from "@/lib/processors/text-extractor";
 import { chunkDocument } from "@/lib/processors/chunker";
 import { generateEmbedding } from "@/lib/ai/embeddings";
+import { isGeminiConfigured } from "@/lib/ai/client";
+import { getCurrentUser } from "@/lib/db/auth-server";
 
 export async function POST(req: NextRequest) {
   let targetFileId: string | null = null;
-  const adminRepo = new KnowDriveRepository();
+  let ownerRepo: KnowDriveRepository | null = null;
 
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { fileId } = await req.json();
     if (!fileId) {
       return NextResponse.json({ error: "fileId is required" }, { status: 400 });
     }
     targetFileId = fileId;
 
-    const file = await adminRepo.getFileByIdAdmin(fileId);
+    const lookupRepo = new KnowDriveRepository(user.id, user.isDemo);
+    const ownedFile = await lookupRepo.getFileById(fileId);
+    const adminRepo = new KnowDriveRepository(user.id, false);
+    const file = ownedFile || (user.isDemo ? await adminRepo.getFileByIdAdmin(fileId) : null);
+
     if (!file) {
       return NextResponse.json({ error: "File not found" }, { status: 404 });
     }
+    if (!user.isDemo && file.user_id !== user.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
 
-    const repo = new KnowDriveRepository(file.user_id);
+    const repo = new KnowDriveRepository(file.user_id, user.isDemo);
+    ownerRepo = repo;
 
-    // Set status to processing
-    await repo.updateFile(fileId, { processing_status: "processing" });
+    await repo.updateFile(fileId, { processing_status: "processing", error_message: null });
 
-    // Attempt to download the real file content from Supabase Storage
     let buffer: Buffer | null = null;
     const supabase = getSupabaseServerClient();
     const bucketName = process.env.SUPABASE_STORAGE_BUCKET || "knowdrive-files";
 
-    if (supabase && isSupabaseConfigured && file.storage_path) {
+    if (supabase && isSupabaseConfigured && file.storage_path && !file.storage_path.startsWith("demo/")) {
       try {
         const { data: fileBlob, error: downloadError } = await supabase.storage
           .from(bucketName)
@@ -41,41 +54,58 @@ export async function POST(req: NextRequest) {
           buffer = Buffer.from(await fileBlob.arrayBuffer());
         }
       } catch (dlErr) {
-        console.warn("Could not download file from Supabase Storage, using fallback:", dlErr);
+        console.warn("Could not download file from Supabase Storage:", dlErr);
       }
     }
 
     if (!buffer) {
-      // Fallback sample content if file binary is unavailable
-      const fallbackContent = `Document: ${file.name}\n\nThis document contains technical notes, project specifications, and reference materials for ${file.name}. It covers architecture, concepts, implementation details, and workflow summaries.`;
-      buffer = Buffer.from(fallbackContent, "utf-8");
+      throw new Error(
+        "Could not read the uploaded file for indexing. Re-upload the document and try again."
+      );
     }
 
-    // Extract text using pdf-parse, mammoth, or utf-8 text extractor
     const extracted = await extractDocumentText(buffer, file.name, file.mime_type);
+    if (!extracted.fullText || extracted.fullText.replace(/\s+/g, "").length < 20) {
+      throw new Error(
+        "No readable text could be extracted from this file. Scanned images need OCR, which is not enabled yet."
+      );
+    }
 
-    // Chunk the extracted document (page-aware, 250 tokens target, 35 token overlap)
     const rawChunks = chunkDocument(extracted, 250, 35);
+    if (rawChunks.length === 0) {
+      throw new Error("Document chunking produced no searchable sections.");
+    }
 
-    // Generate 768-dim embeddings strictly via Gemini gemini-embedding-001
-    const chunksWithEmbeddings = await Promise.all(
-      rawChunks.map(async (rc) => {
-        const embedding = await generateEmbedding(rc.chunk_text);
-        return {
-          document_id: "",
-          file_id: file.id,
-          user_id: file.user_id,
-          chunk_index: rc.chunk_index,
-          chunk_text: rc.chunk_text,
-          page_number: rc.page_number,
-          token_count: rc.token_count,
-          embedding,
-          metadata: rc.metadata,
-        };
-      })
-    );
+    const chunksWithEmbeddings = [];
+    let embeddingFailures = 0;
 
-    // Persist document record and chunks with RFC 4122 UUIDs
+    for (let i = 0; i < rawChunks.length; i++) {
+      const rc = rawChunks[i];
+      let embedding: number[] | undefined;
+      if (isGeminiConfigured) {
+        try {
+          embedding = await generateEmbedding(rc.chunk_text, "RETRIEVAL_DOCUMENT");
+        } catch (embedErr) {
+          embeddingFailures += 1;
+          console.warn(`Embedding failed for chunk ${i} of ${file.name}:`, embedErr);
+        }
+      } else {
+        embeddingFailures += 1;
+      }
+
+      chunksWithEmbeddings.push({
+        document_id: "",
+        file_id: file.id,
+        user_id: file.user_id,
+        chunk_index: rc.chunk_index,
+        chunk_text: rc.chunk_text,
+        page_number: rc.page_number,
+        token_count: rc.token_count,
+        embedding,
+        metadata: rc.metadata,
+      });
+    }
+
     const result = await repo.saveDocumentAndChunks(
       {
         file_id: file.id,
@@ -83,28 +113,39 @@ export async function POST(req: NextRequest) {
         title: extracted.title,
         page_count: extracted.pageCount,
         word_count: extracted.wordCount,
-        extracted_text: extracted.fullText.slice(0, 5000),
+        extracted_text: extracted.fullText.slice(0, 20000),
       },
       chunksWithEmbeddings
     );
+
+    const embeddingNote =
+      embeddingFailures > 0
+        ? `Indexed ${result.chunks.length} chunks. Vector embeddings were unavailable for ${embeddingFailures} chunk(s); keyword search still works.`
+        : null;
+
+    await repo.updateFile(file.id, {
+      processing_status: "ready",
+      error_message: embeddingNote,
+    });
 
     return NextResponse.json({
       success: true,
       fileId: file.id,
       chunksCount: result.chunks.length,
       pages: extracted.pageCount,
+      embeddingsIndexed: result.chunks.length - embeddingFailures,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Processing failed";
     console.error("Document processing error:", error);
 
-    if (targetFileId) {
-      await adminRepo.updateFile(targetFileId, {
+    if (targetFileId && ownerRepo) {
+      await ownerRepo.updateFile(targetFileId, {
         processing_status: "failed",
         error_message: message,
       });
     }
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Document processing failed. Please try uploading again." }, { status: 500 });
   }
 }
