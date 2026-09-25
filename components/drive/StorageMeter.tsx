@@ -74,7 +74,7 @@ export function StorageMeter({ stats, compact = false }: StorageMeterProps) {
           title={`PDFs: ${formatBytes(stats.by_type.pdf.bytes)}`}
         />
         <div
-          className="bg-blue-500 h-full transition-all"
+          className="bg-teal-500 h-full transition-all"
           style={{ width: `${(stats.by_type.docx.bytes / stats.quota_bytes) * 100}%` }}
           title={`Word Docs: ${formatBytes(stats.by_type.docx.bytes)}`}
         />
@@ -122,7 +122,7 @@ export function StorageMeter({ stats, compact = false }: StorageMeterProps) {
         </div>
 
         <div className="flex items-center gap-2 text-xs">
-          <div className="w-3 h-3 rounded-full bg-blue-500 shrink-0" />
+          <div className="w-3 h-3 rounded-full bg-teal-500 shrink-0" />
           <div className="truncate">
             <div className="font-medium text-foreground">DOCX & Other</div>
             <div className="text-muted-foreground">{formatBytes(stats.by_type.docx.bytes + stats.by_type.other.bytes)}</div>

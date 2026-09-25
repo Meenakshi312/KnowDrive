@@ -76,13 +76,13 @@ export function CompareModal({
       {/* Header */}
       <div className="p-6 border-b border-border bg-card/80 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-cyan-600 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
             <Layers className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-foreground">Cross-File Document Comparison</h2>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                 AI Synthesis
               </span>
             </div>
@@ -117,7 +117,7 @@ export function CompareModal({
             {/* Executive Summary */}
             <div className="p-4 rounded-2xl bg-card border border-border shadow-sm space-y-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-indigo-500" />
+                <Sparkles className="w-4 h-4 text-primary" />
                 Executive Synthesis
               </h3>
               <p className="text-sm text-foreground leading-relaxed">{comparison.summary}</p>
@@ -182,7 +182,7 @@ export function CompareModal({
                               snippet: item.quote,
                             })
                           }
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-mono text-[11px] font-semibold transition-colors"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-mono text-[11px] font-semibold transition-colors"
                         >
                           <FileText className="w-3 h-3" />
                           <span>{item.file_name}</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDrive } from "@/components/drive/DriveContext";
 import { StorageMeter } from "@/components/drive/StorageMeter";
 import { useTheme } from "next-themes";
@@ -13,25 +13,60 @@ import {
   List,
   RefreshCw,
   LogOut,
-  FolderSync,
   GraduationCap,
   Code2,
-  Check,
+  Shield,
+  HardDrive,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
-  const { storageStats, user, refreshData, viewMode, setViewMode } = useDrive();
+  const { storageStats, user, setUser, refreshData, viewMode, setViewMode } = useDrive();
   const { theme, setTheme } = useTheme();
   const [syncing, setSyncing] = useState(false);
-  const [fullName, setFullName] = useState(user?.full_name || "Student User");
+  const [saving, setSaving] = useState(false);
+  const [fullName, setFullName] = useState(user?.full_name || "");
   const [academicFocus, setAcademicFocus] = useState("Computer Science & Engineering");
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user?.full_name) {
+      setFullName(user.full_name);
+    }
+  }, [user?.full_name]);
+
+  useEffect(() => {
+    const savedFocus = localStorage.getItem("knowdrive_academic_focus");
+    if (savedFocus) setAcademicFocus(savedFocus);
+  }, []);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Profile preferences saved locally!");
+    setSaving(true);
+    try {
+      const res = await fetch("/api/auth/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ full_name: fullName.trim() }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update profile");
+      }
+
+      const data = await res.json();
+      if (data.user) {
+        setUser(data.user);
+      }
+      localStorage.setItem("knowdrive_academic_focus", academicFocus);
+      await refreshData();
+      toast.success("Display name updated successfully!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save profile");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSyncWorkspace = async () => {
@@ -54,6 +89,9 @@ export default function SettingsPage() {
     }
   };
 
+  const displayName = fullName || user?.full_name || "Student User";
+  const displayEmail = user?.email || "student@knowdrive.dev";
+
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-8">
       <div>
@@ -70,11 +108,11 @@ export default function SettingsPage() {
       <div className="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-6">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xl border border-primary/20">
-            {fullName ? fullName[0].toUpperCase() : "S"}
+            {displayName[0]?.toUpperCase() || "S"}
           </div>
           <div>
-            <h3 className="text-base font-bold text-foreground">{fullName}</h3>
-            <p className="text-xs text-muted-foreground">{user?.email || "student@knowdrive.dev"}</p>
+            <h3 className="text-base font-bold text-foreground">{displayName}</h3>
+            <p className="text-xs text-muted-foreground">{displayEmail}</p>
             <div className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold">
               <GraduationCap className="w-3 h-3" />
               <span>Student Account</span>
@@ -89,13 +127,14 @@ export default function SettingsPage() {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Your Name"
+              required
             />
           </div>
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-foreground">Email Address</label>
             <Input
-              value={user?.email || "student@knowdrive.dev"}
+              value={displayEmail}
               disabled
               className="bg-muted text-muted-foreground cursor-not-allowed"
             />
@@ -111,7 +150,13 @@ export default function SettingsPage() {
           </div>
 
           <div className="md:col-span-2 flex justify-end pt-2">
-            <Button type="submit" variant="brand" size="sm" className="rounded-xl text-xs font-semibold">
+            <Button
+              type="submit"
+              variant="brand"
+              size="sm"
+              isLoading={saving}
+              className="rounded-xl text-xs font-semibold"
+            >
               Save Changes
             </Button>
           </div>
@@ -202,29 +247,24 @@ export default function SettingsPage() {
       {/* Storage Meter */}
       <StorageMeter stats={storageStats} />
 
-      {/* About KnowDrive / Student Project Info */}
+      {/* Account Info Details */}
       <div className="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-4">
         <div className="flex items-center gap-2.5">
-          <Code2 className="w-5 h-5 text-primary" />
-          <h3 className="text-sm font-bold text-foreground">About KnowDrive</h3>
+          <Shield className="w-5 h-5 text-primary" />
+          <h3 className="text-sm font-bold text-foreground">Security &amp; Storage Details</h3>
         </div>
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          KnowDrive is a full-stack student portfolio application designed to combine personal cloud document management with an AI knowledge assistant. Documents are securely stored, chunked, and embedded into a PostgreSQL vector database with page-aware RAG citations.
-        </p>
-
-        <div className="pt-2">
-          <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider mb-2">
-            Built With
-          </p>
-          <div className="flex flex-wrap gap-2 text-xs">
-            {["Next.js 15", "React 19", "TypeScript", "Tailwind CSS", "Supabase PostgreSQL", "pgvector (768-dim)", "Google Gemini AI", "pdf-parse / mammoth"].map((tech) => (
-              <span
-                key={tech}
-                className="px-2.5 py-1 rounded-lg bg-muted text-muted-foreground border border-border/80 text-[11px] font-medium"
-              >
-                {tech}
-              </span>
-            ))}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+          <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
+            <p className="text-[11px] text-muted-foreground">Storage Plan</p>
+            <p className="text-sm font-bold text-foreground mt-0.5">1 GB Free Tier</p>
+          </div>
+          <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
+            <p className="text-[11px] text-muted-foreground">AI Embeddings</p>
+            <p className="text-sm font-bold text-foreground mt-0.5">pgvector (768-dim)</p>
+          </div>
+          <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
+            <p className="text-[11px] text-muted-foreground">Account Status</p>
+            <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">Active</p>
           </div>
         </div>
       </div>

@@ -44,7 +44,7 @@ export function ChatMessage({ message, onCitationClick }: ChatMessageProps) {
         <button
           key={`inline-cit-${match.index}`}
           onClick={() => onCitationClick && onCitationClick(matchingCitation)}
-          className="inline-flex items-center gap-1 mx-1 px-2 py-0.5 rounded-md bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-mono text-xs border border-indigo-500/25 transition-all hover:scale-105 align-baseline"
+          className="inline-flex items-center gap-1 mx-1 px-2 py-0.5 rounded-md bg-primary/10 hover:bg-primary/20 text-primary font-mono text-xs border border-primary/25 transition-all hover:scale-105 align-baseline"
           title={`Click to open ${fileName} at Page ${pageNumber}`}
         >
           <Bookmark className="w-3 h-3 shrink-0" />
@@ -66,7 +66,7 @@ export function ChatMessage({ message, onCitationClick }: ChatMessageProps) {
   return (
     <div className={`flex gap-3 text-sm ${isAssistant ? "justify-start" : "justify-end"}`}>
       {isAssistant && (
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shrink-0 shadow-md shadow-indigo-500/20">
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-600 flex items-center justify-center text-white shrink-0 shadow-md shadow-emerald-500/20">
           <Bot className="w-4 h-4" />
         </div>
       )}
@@ -86,7 +86,7 @@ export function ChatMessage({ message, onCitationClick }: ChatMessageProps) {
         {isAssistant && message.citations && message.citations.length > 0 && (
           <div className="pt-3 border-t border-border/60 space-y-2">
             <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              <FileText className="w-3.5 h-3.5 text-indigo-500" />
+              <FileText className="w-3.5 h-3.5 text-primary" />
               <span>Grounded Document Sources ({message.citations.length})</span>
             </div>
 
@@ -95,7 +95,7 @@ export function ChatMessage({ message, onCitationClick }: ChatMessageProps) {
                 <button
                   key={citation.id}
                   onClick={() => onCitationClick && onCitationClick(citation)}
-                  className="group flex items-center gap-2 p-2 rounded-xl bg-muted/50 hover:bg-muted border border-border text-left transition-all hover:border-indigo-500/50"
+                  className="group flex items-center gap-2 p-2 rounded-xl bg-muted/50 hover:bg-muted border border-border text-left transition-all hover:border-primary/50"
                   title="Click to preview file at cited page"
                 >
                   <FileText className="w-3.5 h-3.5 text-primary shrink-0 group-hover:scale-110 transition-transform" />

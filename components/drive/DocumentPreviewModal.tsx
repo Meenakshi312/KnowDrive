@@ -192,7 +192,7 @@ export function DocumentPreviewModal({
         {activeTab === "preview" && (
           <div className="max-w-3xl mx-auto bg-card rounded-2xl border border-border p-8 shadow-sm space-y-6 min-h-[500px]">
             {targetPage && targetPage > 1 && (
-              <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-600 dark:text-indigo-400 flex items-center justify-between">
+              <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs text-primary flex items-center justify-between">
                 <span>
                   Jumped directly to <strong>Page {targetPage}</strong> from AI citation.
                 </span>

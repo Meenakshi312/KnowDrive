@@ -47,7 +47,6 @@ export function Sidebar({
     { label: "My Drive", href: "/drive", icon: HardDrive },
     { label: "Recent", href: "/recent", icon: Clock },
     { label: "Starred", href: "/starred", icon: Star },
-    { label: "Trash", href: "/trash", icon: Trash2 },
   ];
 
   const sidebarContent = (

@@ -42,7 +42,7 @@ export function Breadcrumbs({
         <>
           <ChevronRight className="w-3.5 h-3.5 mx-1.5 text-muted-foreground/60 shrink-0" />
           <div className="flex items-center gap-1.5 text-foreground font-semibold truncate max-w-[200px]">
-            <Folder className="w-4 h-4 text-blue-500 fill-blue-500/20" />
+            <Folder className="w-4 h-4 text-primary fill-primary/20" />
             <span className="truncate">{currentFolder.name}</span>
           </div>
         </>

@@ -7,6 +7,7 @@ import { SortField, SortOrder } from "./FileToolbar";
 
 interface DriveContextType {
   user: UserProfile | null;
+  setUser: React.Dispatch<React.SetStateAction<UserProfile | null>>;
   files: DriveFile[];
   folders: FolderItem[];
   storageStats: StorageBreakdown | null;
@@ -105,14 +106,22 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
   const [previewFile, setPreviewFile] = useState<DriveFile | null>(null);
   const [previewTargetPage, setPreviewTargetPage] = useState<number>(1);
   const [aiTargetFile, setAiTargetFile] = useState<DriveFile | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const refreshData = useCallback(async () => {
     setLoading(true);
     try {
       // Fetch files
       let filesUrl = "/api/files";
-      if (searchQuery.trim()) {
-        filesUrl = `/api/search?q=${encodeURIComponent(searchQuery)}&semantic=${isSemanticSearch}`;
+      if (debouncedSearch.trim()) {
+        filesUrl = `/api/search?q=${encodeURIComponent(debouncedSearch)}&semantic=${isSemanticSearch}`;
       }
 
       const [filesRes, foldersRes] = await Promise.all([
@@ -137,7 +146,7 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, isSemanticSearch]);
+  }, [debouncedSearch, isSemanticSearch]);
 
   useEffect(() => {
     refreshData();
@@ -314,6 +323,7 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
     <DriveContext.Provider
       value={{
         user,
+        setUser,
         files,
         folders,
         storageStats,

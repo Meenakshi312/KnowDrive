@@ -48,13 +48,13 @@ export function FileToolbar({
     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 py-2 border-b border-border/60">
       {/* If files are selected: Show contextual batch action bar */}
       {selectedCount > 0 ? (
-        <div className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/30 px-3 py-1.5 rounded-xl w-full sm:w-auto animate-in fade-in">
-          <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+        <div className="flex items-center gap-2 bg-primary/10 border border-primary/30 px-3 py-1.5 rounded-xl w-full sm:w-auto animate-in fade-in">
+          <span className="text-xs font-semibold text-primary flex items-center gap-1.5">
             <FileCheck className="w-4 h-4" />
             {selectedCount} {selectedCount === 1 ? "file" : "files"} selected
           </span>
 
-          <div className="h-4 w-px bg-indigo-500/30 mx-1" />
+          <div className="h-4 w-px bg-primary/30 mx-1" />
 
           {selectedCount >= 2 && (
             <Button

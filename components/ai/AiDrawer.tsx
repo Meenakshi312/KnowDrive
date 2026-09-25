@@ -116,13 +116,13 @@ export function AiDrawer({ isOpen, onClose, activeFile, onOpenCitation }: AiDraw
         {/* Drawer Header */}
         <div className="p-4 border-b border-border flex items-center justify-between bg-card/80 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/20">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-foreground">Ask Assistant</h3>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                   AI Copilot
                 </span>
               </div>
@@ -154,13 +154,13 @@ export function AiDrawer({ isOpen, onClose, activeFile, onOpenCitation }: AiDraw
 
         {/* Target Document Switcher / Indicator Banner */}
         {currentTargetFile ? (
-          <div className="flex items-center justify-between px-4 py-2 bg-indigo-50/70 dark:bg-indigo-950/30 border-b border-indigo-100 dark:border-indigo-900/30 text-xs shrink-0">
+          <div className="flex items-center justify-between px-4 py-2 bg-emerald-50/70 dark:bg-emerald-950/30 border-b border-emerald-100 dark:border-emerald-900/30 text-xs shrink-0">
             <div className="flex items-center gap-2 min-w-0">
-              <FileText className="w-4 h-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
+              <FileText className="w-4 h-4 shrink-0 text-primary" />
               <span className="font-semibold text-foreground truncate max-w-[260px]">
                 {currentTargetFile.name}
               </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-medium shrink-0">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium shrink-0">
                 Target File
               </span>
             </div>
@@ -169,7 +169,7 @@ export function AiDrawer({ isOpen, onClose, activeFile, onOpenCitation }: AiDraw
                 setCurrentTargetFile(null);
                 handleResetChat();
               }}
-              className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:underline shrink-0 ml-2"
+              className="text-[11px] font-medium text-primary hover:underline shrink-0 ml-2"
             >
               Search All Files
             </button>
@@ -218,7 +218,7 @@ export function AiDrawer({ isOpen, onClose, activeFile, onOpenCitation }: AiDraw
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
                 <Bot className="w-6 h-6" />
               </div>
               <div className="space-y-1 max-w-sm">
@@ -257,7 +257,7 @@ export function AiDrawer({ isOpen, onClose, activeFile, onOpenCitation }: AiDraw
         <div className="p-4 border-t border-border bg-card/80 shrink-0 space-y-2">
           {/* Active file target chip if set */}
           {currentTargetFile && (
-            <div className="flex items-center justify-between text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg w-fit max-w-full">
+            <div className="flex items-center justify-between text-xs text-primary bg-primary/10 px-2.5 py-1 rounded-lg w-fit max-w-full">
               <div className="flex items-center gap-1.5 truncate">
                 <FileText className="w-3.5 h-3.5 shrink-0" />
                 <span className="font-semibold truncate">{currentTargetFile.name}</span>

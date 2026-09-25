@@ -151,7 +151,7 @@ export function FileUploadDropzone({
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
         />
-        <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-inner">
+        <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-inner">
           <UploadCloud className="w-8 h-8" />
         </div>
         <div>
@@ -194,7 +194,7 @@ export function FileUploadDropzone({
                     </span>
                   )}
                   {file.status === "processing" && (
-                    <span className="text-[11px] text-indigo-500 flex items-center gap-1">
+                    <span className="text-[11px] text-primary flex items-center gap-1">
                       <Loader2 className="w-3 h-3 animate-spin" />
                       Indexing chunks...
                     </span>

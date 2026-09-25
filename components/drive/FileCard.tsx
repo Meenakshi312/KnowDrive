@@ -54,7 +54,7 @@ export function FileCard({
       case "pdf":
         return <FileText className="w-8 h-8 text-rose-500" />;
       case "docx":
-        return <FileText className="w-8 h-8 text-blue-500" />;
+        return <FileText className="w-8 h-8 text-teal-600 dark:text-teal-400" />;
       case "md":
       case "txt":
         return <FileCode className="w-8 h-8 text-emerald-500" />;
@@ -80,7 +80,7 @@ export function FileCard({
       case "processing":
         return (
           <span
-            className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full animate-pulse"
+            className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full animate-pulse"
             title="Extracting text chunks & vector embeddings..."
           >
             <Loader2 className="w-3 h-3 animate-spin" />
@@ -159,7 +159,7 @@ export function FileCard({
                     }}
                     className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-muted text-foreground text-left"
                   >
-                    <Eye className="w-3.5 h-3.5 text-blue-500" />
+                    <Eye className="w-3.5 h-3.5 text-primary" />
                     <span>Preview Document</span>
                   </button>
 
@@ -168,7 +168,7 @@ export function FileCard({
                       setShowMenu(false);
                       onAskAi(file);
                     }}
-                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-medium text-left"
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-primary/10 text-primary font-medium text-left"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>Ask AI About File</span>
@@ -264,7 +264,7 @@ export function FileCard({
               e.stopPropagation();
               onAskAi(file);
             }}
-            className="text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-medium"
+            className="text-primary hover:underline flex items-center gap-1 font-medium"
           >
             <Sparkles className="w-2.5 h-2.5" />
             Ask

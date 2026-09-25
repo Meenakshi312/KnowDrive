@@ -20,8 +20,8 @@ export function FolderCard({ folder, onDelete, onRename }: FolderCardProps) {
         href={`/drive/${folder.id}`}
         className="flex items-center gap-3 flex-1 min-w-0"
       >
-        <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-          <Folder className="w-5 h-5 fill-blue-500/20" />
+        <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+          <Folder className="w-5 h-5 fill-primary/20" />
         </div>
         <div className="truncate">
           <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">

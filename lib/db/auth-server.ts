@@ -85,19 +85,41 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
     } = await Promise.race([userPromise, timeoutPromise]);
 
     if (user) {
-      const fullName =
+      let fullName =
         user.user_metadata?.full_name ||
         user.email?.split("@")[0] ||
         "Student User";
+      let avatarUrl = user.user_metadata?.avatar_url || null;
 
-      // Ensure profile exists in public.profiles table to prevent foreign key errors (non-blocking)
-      ensureUserProfile(user.id, user.email || "", fullName, user.user_metadata?.avatar_url).catch(() => {});
+      // Check public.profiles table for the latest updated display name
+      const admin = getSupabaseServerClient();
+      if (admin) {
+        try {
+          const { data: profile } = await admin
+            .from("profiles")
+            .select("full_name, avatar_url")
+            .eq("id", user.id)
+            .single();
+
+          if (profile?.full_name) {
+            fullName = profile.full_name;
+          }
+          if (profile?.avatar_url) {
+            avatarUrl = profile.avatar_url;
+          }
+        } catch (e) {
+          // Fall back to metadata
+        }
+      }
+
+      // Ensure profile exists in public.profiles table without overwriting customized name
+      ensureUserProfile(user.id, user.email || "", fullName, avatarUrl).catch(() => {});
 
       return {
         id: user.id,
         email: user.email || "",
         full_name: fullName,
-        avatar_url: user.user_metadata?.avatar_url || null,
+        avatar_url: avatarUrl,
         isDemo: false,
       };
     }
@@ -110,7 +132,7 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
 }
 
 /**
- * Ensures a record exists in public.profiles for the given authenticated user
+ * Ensures a record exists in public.profiles for the given authenticated user without overwriting existing data
  */
 export async function ensureUserProfile(
   userId: string,
@@ -122,17 +144,17 @@ export async function ensureUserProfile(
   if (!admin || !isSupabaseConfigured) return;
 
   try {
-    await admin.from("profiles").upsert(
-      {
+    const { data: existing } = await admin.from("profiles").select("id").eq("id", userId).single();
+    if (!existing) {
+      await admin.from("profiles").insert({
         id: userId,
         email,
         full_name: fullName,
         avatar_url: avatarUrl || null,
         updated_at: new Date().toISOString(),
-      },
-      { onConflict: "id" }
-    );
+      });
+    }
   } catch (err) {
-    console.warn("Could not upsert profile in Supabase:", err);
+    console.warn("Could not ensure profile in Supabase:", err);
   }
 }

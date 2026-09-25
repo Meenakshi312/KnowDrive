@@ -202,7 +202,7 @@ export function MoveModal({ isOpen, file, folders, onClose, onMove }: MoveModalP
                 targetFolderId === f.id ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted"
               }`}
             >
-              <Folder className="w-4 h-4 text-blue-500" />
+              <Folder className="w-4 h-4 text-primary" />
               <span>{f.name}</span>
             </button>
           ))}

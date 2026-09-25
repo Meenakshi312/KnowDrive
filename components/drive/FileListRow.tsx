@@ -54,7 +54,7 @@ export function FileListRow({
       case "pdf":
         return <FileText className="w-4 h-4 text-rose-500 shrink-0" />;
       case "docx":
-        return <FileText className="w-4 h-4 text-blue-500 shrink-0" />;
+        return <FileText className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />;
       case "md":
       case "txt":
         return <FileCode className="w-4 h-4 text-emerald-500 shrink-0" />;
@@ -114,7 +114,7 @@ export function FileListRow({
             AI Ready
           </span>
         ) : file.processing_status === "processing" ? (
-          <span className="inline-flex items-center gap-1 text-[11px] text-indigo-600 dark:text-indigo-400 font-medium animate-pulse">
+          <span className="inline-flex items-center gap-1 text-[11px] text-primary font-medium animate-pulse">
             <Loader2 className="w-3 h-3 animate-spin" />
             Indexing
           </span>
@@ -154,7 +154,7 @@ export function FileListRow({
         <div className="flex items-center justify-end gap-1">
           <button
             onClick={() => onAskAi(file)}
-            className="p-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 rounded-lg flex items-center gap-1 font-medium transition-colors"
+            className="p-1.5 text-xs text-primary hover:bg-primary/10 rounded-lg flex items-center gap-1 font-medium transition-colors"
             title="Ask AI about this file"
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -181,7 +181,7 @@ export function FileListRow({
                     }}
                     className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-muted text-foreground text-left"
                   >
-                    <Eye className="w-3.5 h-3.5 text-blue-500" />
+                    <Eye className="w-3.5 h-3.5 text-primary" />
                     <span>Preview</span>
                   </button>
 

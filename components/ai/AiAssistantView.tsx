@@ -184,7 +184,7 @@ export function AiAssistantView({ onOpenCitation, files, onClose }: AiAssistantV
         {/* Top Header Controls: Target File Selector & Close Icon */}
         <div className="px-4 py-2.5 border-b border-border bg-card/80 flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
               <Sparkles className="w-3.5 h-3.5" />
             </div>
             <div>
@@ -234,7 +234,7 @@ export function AiAssistantView({ onOpenCitation, files, onClose }: AiAssistantV
         <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
           {messages.length === 0 ? (
             <div className="max-w-2xl mx-auto py-12 flex flex-col items-center justify-center text-center space-y-6">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/25">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-cyan-600 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25">
                 <Sparkles className="w-7 h-7" />
               </div>
 
@@ -271,7 +271,7 @@ export function AiAssistantView({ onOpenCitation, files, onClose }: AiAssistantV
         {/* Input Bar */}
         <div className="p-4 border-t border-border bg-card/70 backdrop-blur-md shrink-0 space-y-2">
           {currentTargetFile && (
-            <div className="max-w-3xl mx-auto flex items-center justify-between text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg w-fit max-w-full">
+            <div className="max-w-3xl mx-auto flex items-center justify-between text-xs text-primary bg-primary/10 px-2.5 py-1 rounded-lg w-fit max-w-full">
               <div className="flex items-center gap-1.5 truncate">
                 <FileText className="w-3.5 h-3.5 shrink-0" />
                 <span className="font-semibold truncate">{currentTargetFile.name}</span>

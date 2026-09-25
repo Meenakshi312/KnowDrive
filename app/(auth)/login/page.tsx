@@ -3,9 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Brain, Lock, Mail, ArrowRight, Sparkles, CheckCircle2, Shield } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Brain, Lock, Mail, ArrowRight, Shield, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/db/supabase-browser";
 
@@ -13,9 +11,9 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // If already authenticated, forward to dashboard
   React.useEffect(() => {
     async function checkAuth() {
       try {
@@ -43,7 +41,6 @@ export default function LoginPage() {
           password,
         });
 
-        // If email confirmation is required by Supabase, auto-verify via admin and retry
         if (error && error.message?.toLowerCase().includes("confirm")) {
           try {
             const confirmRes = await fetch("/api/auth/auto-confirm", {
@@ -59,23 +56,19 @@ export default function LoginPage() {
               data = retry.data;
               error = retry.error;
             }
-          } catch {
-            // fallback to showing original error
-          }
+          } catch {}
         }
 
         if (error) throw error;
 
-        // Clear demo cookie so real user session is active
         document.cookie = "knowdrive_demo_session=; path=/; max-age=0";
         toast.success("Successfully signed in!");
         window.location.href = "/";
         return;
       }
 
-      // Demo fallback mode if Supabase is not configured
       document.cookie = "knowdrive_demo_session=true; path=/; max-age=86400; SameSite=Lax";
-      toast.success("Entering KnowDrive (Demo Mode)!");
+      toast.success("Welcome to KnowDrive!");
       window.location.href = "/";
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to sign in";
@@ -85,140 +78,118 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemoAccess = () => {
-    // Set demo session cookie for guest/evaluator exploration
-    document.cookie = "knowdrive_demo_session=true; path=/; max-age=86400; SameSite=Lax";
-    toast.success("Entering KnowDrive Student Demo Workspace!");
-    window.location.href = "/";
-  };
-
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-background">
-      {/* Left Student Portfolio Showcase */}
-      <div className="w-full md:w-1/2 p-8 md:p-12 lg:p-16 flex flex-col justify-between bg-card border-r border-border text-foreground relative">
-        <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-md">
+    <div className="auth-container">
+      {/* Ambient background blur elements */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-primary/10 blur-[130px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute -bottom-20 left-1/4 w-[400px] h-[300px] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none -z-10" />
+
+      {/* Auth Card */}
+      <div className="auth-card">
+        {/* Brand & Heading */}
+        <div className="text-center space-y-2 mb-6">
+          <Link href="/" className="inline-flex items-center gap-2 group mb-2">
+            <div className="w-12 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/25 group-hover:scale-105 transition-transform">
               <Brain className="w-6 h-6" />
             </div>
-            <div>
-              <span className="font-bold text-xl tracking-tight text-foreground">KnowDrive</span>
-              <span className="block text-xs text-muted-foreground">Student Portfolio Project</span>
-            </div>
-          </div>
-        </div>
+          </Link>
 
-        <div className="relative z-10 my-10 space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
-            <Sparkles className="w-3.5 h-3.5" />
-            Personal Document Drive + AI Knowledge Assistant
-          </div>
-          <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight text-foreground">
-            Your files, organized <br />
-            and understood with AI.
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Welcome back
           </h1>
-          <p className="text-sm text-muted-foreground max-w-lg leading-relaxed">
-            KnowDrive combines personal cloud document storage with RAG intelligence. Upload course notes, project specs, and technical papers, then search and reason across them with verified page citations.
-          </p>
-
-          <div className="space-y-3 pt-2 text-xs md:text-sm text-foreground">
-            <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-              <span>Multi-document cross-file reasoning with Google Gemini</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-              <span>Clickable citations that jump directly to document pages</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-              <span>PostgreSQL & pgvector 768-dim embeddings with Supabase</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="relative z-10 flex items-center gap-2 text-xs text-muted-foreground">
-          <Shield className="w-4 h-4 text-primary" />
-          <span>Student portfolio build &bull; 100% Free-tier compatible</span>
-        </div>
-      </div>
-
-      {/* Right Login Form */}
-      <div className="w-full md:w-1/2 p-8 md:p-12 lg:p-16 flex flex-col justify-center max-w-md mx-auto">
-        <div className="space-y-2 mb-6">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">Sign In</h2>
-          <p className="text-sm text-muted-foreground">
-            Access your personal workspace or try the student demo.
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Sign in to your KnowDrive workspace
           </p>
         </div>
 
-        {/* Demo Fast Track Button */}
-        <div className="mb-6 p-4 rounded-2xl bg-primary/5 border border-primary/20 text-center space-y-2.5">
-          <p className="text-xs font-semibold text-primary">
-            Grading, evaluating, or recruiting?
-          </p>
-          <Button
-            type="button"
-            onClick={handleDemoAccess}
-            variant="brand"
-            className="w-full h-10 text-xs font-semibold rounded-xl shadow-sm"
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            Explore Demo Workspace Instantly
-          </Button>
-          <p className="text-[11px] text-muted-foreground">
-            Pre-loaded with sample docs and folders. No account required.
-          </p>
-        </div>
-
-        <div className="relative my-4">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or with Supabase account</span>
-          </div>
-        </div>
-
+        {/* Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-foreground">Email</label>
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="alex.chen@student.portfolio"
-              icon={<Mail className="w-4 h-4" />}
-              required
-            />
+            <label className="text-xs font-semibold text-foreground block">
+              Email address
+            </label>
+            <div className="auth-input-wrapper">
+              <div className="auth-input-icon">
+                <Mail className="w-4 h-4" />
+              </div>
+              <input
+                type="email"
+                name="email"
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                className="auth-input"
+                required
+              />
+            </div>
           </div>
 
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-foreground">Password</label>
+            <label className="text-xs font-semibold text-foreground block">
+              Password
+            </label>
+            <div className="auth-input-wrapper">
+              <div className="auth-input-icon">
+                <Lock className="w-4 h-4" />
+              </div>
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="auth-input"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="auth-input-action"
+                title={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
-            <Input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              icon={<Lock className="w-4 h-4" />}
-              required
-            />
           </div>
 
-          <Button type="submit" variant="default" className="w-full h-10 rounded-xl" isLoading={loading}>
-            Sign In
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="auth-submit-btn mt-6"
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Signing In...
+              </span>
+            ) : (
+              <>
+                <span>Sign In</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
         </form>
 
-        <p className="mt-8 text-center text-xs text-muted-foreground">
+        {/* Switch to Sign Up */}
+        <div className="mt-6 pt-4 text-center text-xs text-muted-foreground border-t border-border/50">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="font-semibold text-primary hover:underline">
-            Create account
+          <Link href="/signup" className="font-semibold text-primary hover:underline ml-1">
+            Create an account
           </Link>
-        </p>
+        </div>
+
+        {/* Security / Privacy Trust Footer */}
+        <div className="mt-4 text-center flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+          <Shield className="w-3.5 h-3.5 text-primary" />
+          <span>Encrypted storage &bull; pgvector retrieval</span>
+        </div>
       </div>
     </div>
   );

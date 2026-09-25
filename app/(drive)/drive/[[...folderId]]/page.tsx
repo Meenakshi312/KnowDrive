@@ -10,7 +10,7 @@ import { FileCard } from "@/components/drive/FileCard";
 import { FileListRow } from "@/components/drive/FileListRow";
 import { RenameModal, MoveModal } from "@/components/drive/FileActionsModal";
 import { DriveFile, FolderItem } from "@/types";
-import { FolderPlus, UploadCloud, Sparkles, HardDrive, Inbox } from "lucide-react";
+import { FolderPlus, UploadCloud, Sparkles, HardDrive, Inbox, Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 export default function DriveFolderPage() {
@@ -44,6 +44,8 @@ export default function DriveFolderPage() {
     setIsUploadOpen,
     setIsCreateFolderOpen,
     setActiveFolderId,
+    searchQuery,
+    setSearchQuery,
   } = useDrive();
 
   // Rename and Move modal states
@@ -64,9 +66,10 @@ export default function DriveFolderPage() {
     currentFolderId ? f.parent_id === currentFolderId : !f.parent_id
   );
 
-  // Filter files inside current folder
+  // Filter files inside current folder (show all matches when searching)
   let currentFiles = files.filter((f) => {
     if (f.is_trashed) return false;
+    if (searchQuery.trim()) return true;
     if (currentFolderId) return f.folder_id === currentFolderId;
     return !f.folder_id;
   });
@@ -114,7 +117,7 @@ export default function DriveFolderPage() {
             size="sm"
             className="text-xs rounded-xl"
           >
-            <FolderPlus className="w-3.5 h-3.5 mr-1 text-blue-500" />
+            <FolderPlus className="w-3.5 h-3.5 mr-1 text-primary" />
             New Folder
           </Button>
           <Button
@@ -128,6 +131,25 @@ export default function DriveFolderPage() {
           </Button>
         </div>
       </div>
+
+      {/* Active Search Notification Banner */}
+      {searchQuery.trim() && (
+        <div className="flex items-center justify-between p-3.5 rounded-2xl bg-primary/5 border border-primary/20 text-xs">
+          <div className="flex items-center gap-2">
+            <Search className="w-4 h-4 text-primary" />
+            <span className="font-semibold text-foreground">
+              Search results for &ldquo;{searchQuery}&rdquo;
+            </span>
+            <span className="text-muted-foreground">({currentFiles.length} files found)</span>
+          </div>
+          <button
+            onClick={() => setSearchQuery("")}
+            className="text-primary hover:underline font-semibold text-xs"
+          >
+            Clear search
+          </button>
+        </div>
+      )}
 
       {/* Toolbar Controls */}
       <FileToolbar
@@ -171,7 +193,7 @@ export default function DriveFolderPage() {
           {currentFiles.length >= 2 && (
             <button
               onClick={() => setIsCompareOpen(true)}
-              className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+              className="text-xs font-medium text-primary hover:underline flex items-center gap-1"
             >
               <Sparkles className="w-3 h-3" />
               Compare Documents with AI
